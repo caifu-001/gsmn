@@ -166,6 +166,14 @@
   .btn-row button{flex:1;padding:13px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;}
   .btn-row .cancel{background:#F2F2F2;color:var(--text-2);}
   .btn-row .save{background:#000;color:#fff;}
+
+  /* ===== 桌面宽屏适配：铺满窗口，方便截图 ===== */
+  @media (min-width:768px){
+    body{background:#E0E0E4;}
+    .page{max-width:none;width:100%;box-shadow:none;}
+    .tabbar{max-width:none;}
+    .sheet,.form-sheet{max-width:600px;}
+  }
 </style>
 </head>
 <body>

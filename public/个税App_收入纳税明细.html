@@ -100,6 +100,12 @@
   .sheet .btns .cancel{background:#F2F2F2;color:var(--text);}
   .sheet .btns .save{background:var(--blue);color:#fff;}
   .sheet .btns .del{background:#FDF0F0;color:#E60012;flex:0 0 90px;}
+
+  /* ===== 桌面宽屏适配：铺满窗口，方便截图 ===== */
+  @media (min-width:768px){
+    .page{max-width:none;width:100%;}
+    .sheet{width:100%;max-width:640px;}
+  }
 </style>
 </head>
 <body>
