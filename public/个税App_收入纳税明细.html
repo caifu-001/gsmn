@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>收入纳税明细</title>
+<style>
+  :root{
+    --bg:#F5F6FA;
+    --card:#FFFFFF;
+    --text:#959697;
+    --text-2:#959697;
+    --text-dark:#2E2E2E;
+    --blue:#2E7AFF;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
+    background:#E0E0E4;color:var(--text);}
+  .page{max-width:428px;margin:0 auto;background:var(--bg);min-height:100vh;position:relative;}
+
+  /* ===== 顶部吸顶（状态栏+导航栏） ===== */
+  .top-sticky{position:sticky;top:0;z-index:50;background:var(--card);}
+  .statusbar{height:44px;padding:0 20px;display:flex;align-items:center;
+    justify-content:space-between;font-size:15px;font-weight:600;color:#000;}
+  .statusbar .right{display:flex;gap:6px;align-items:center;color:#000;}
+  .navbar{height:44px;padding:0 4px;display:flex;align-items:center;
+    justify-content:space-between;position:relative;border-bottom:1px solid #E5E5E7;}
+  .navbar .back{display:flex;align-items:center;color:var(--blue);font-size:17px;
+    padding:0 12px;height:44px;cursor:pointer;font-weight:400;}
+  .navbar .back .arrow{font-size:22px;line-height:1;margin-top:-2px;}
+  .navbar .title{font-size:17px;font-weight:600;color:#000;position:absolute;left:50%;transform:translateX(-50%);}
+  .navbar .right-act{color:var(--blue);font-size:17px;padding:0 16px;height:44px;display:flex;
+    align-items:center;cursor:pointer;font-weight:400;}
+
+  /* ===== 汇总卡（白底全宽，浅灰底上浮） ===== */
+  .summary{background:var(--card);padding:15px 16px;margin-bottom:8px;}
+  .summary .row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;}
+  .summary .row .label{font-size:15px;color:#353535;display:flex;align-items:center;gap:4px;}
+  .summary .row .label .q{width:15px;height:15px;border-radius:50%;border:1px solid #B9D3FF;
+    color:var(--blue);font-size:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;line-height:1;}
+  .summary .row .val{font-size:15px;font-weight:600;color:#353535;font-variant-numeric:tabular-nums;}
+
+  /* ===== 明细列表（白底全宽，浅灰底间隙） ===== */
+  .list{background:var(--card);}
+  .rec{padding:13px 16px 14px;cursor:pointer;border-bottom:1px solid #F0F0F2;}
+  .rec:last-child{border-bottom:none;}
+  .rec:active{background:#F7F8FB;}
+  .rec .head{display:flex;align-items:center;justify-content:space-between;}
+  .rec .head .type{font-size:16px;font-weight:600;color:var(--text-dark);}
+  .rec .head .date{font-size:12px;color:var(--text-dark);}
+  .rec .field{display:flex;align-items:flex-start;justify-content:flex-start;
+    font-size:14px;color:var(--text);margin-top:9px;line-height:1.45;}
+  .rec .field .k{flex-shrink:0;margin-right:6px;color:var(--text-2);}
+  .rec .field .v{flex:1;min-width:0;color:var(--text);font-variant-numeric:tabular-nums;
+    display:flex;align-items:center;gap:3px;}
+  .rec .field .v .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:14.2em;}
+  .rec .field .v .arrow{margin-left:auto;color:#C8C8C8;font-size:15px;flex-shrink:0;}
+
+  /* ===== 添加按钮 ===== */
+  .add-btn{display:flex;align-items:center;justify-content:center;gap:4px;
+    margin:12px 0 24px;padding:12px;border:1px dashed #D0D4DD;
+    color:var(--blue);font-size:15px;font-weight:500;cursor:pointer;}
+  .add-btn:active{background:#F5F8FF;}
+
+  /* ===== 弹窗 ===== */
+  .mask{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:100;}
+  .mask.show{display:block;}
+  .sheet{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:428px;max-width:100%;
+    background:#fff;border-radius:16px 16px 0 0;padding:16px 20px 26px;z-index:101;
+    transform:translate(-50%,100%);transition:transform .25s;max-height:88vh;overflow-y:auto;}
+  .sheet.show{transform:translate(-50%,0);}
+  .sheet .grip{width:36px;height:4px;background:#E0E0E0;border-radius:2px;margin:0 auto 14px;}
+  .sheet h4{font-size:16px;font-weight:600;color:#000;margin-bottom:14px;}
+  .sheet .field{margin-bottom:12px;}
+  .sheet .field label{display:block;font-size:13px;color:var(--text-2);margin-bottom:5px;}
+  .sheet .field input,.sheet .field select{width:100%;padding:10px 12px;border:1px solid #E0E0E0;
+    border-radius:8px;font-size:15px;color:var(--text);outline:none;background:#fff;}
+  .sheet .field input:focus{border-color:var(--blue);}
+  .sheet .net-box{background:#F2F6FF;border-radius:8px;padding:12px;margin-bottom:12px;}
+  .sheet .net-box .nlabel{font-size:12px;color:var(--blue);margin-bottom:8px;font-weight:600;}
+  .sheet .calc-row{display:flex;align-items:center;justify-content:space-between;
+    font-size:13px;color:var(--text);padding:3px 0;line-height:1.4;}
+  .sheet .calc-row span{color:#5A5A5A;}
+  .sheet .calc-row b{font-weight:600;color:#000;font-variant-numeric:tabular-nums;text-align:right;}
+  .sheet .calc-row.strong b{color:var(--blue);font-size:15px;font-weight:700;}
+  .sheet .calc-edit{display:flex;align-items:center;justify-content:space-between;
+    font-size:13px;color:#5A5A5A;padding:3px 0;}
+  .sheet .calc-edit input{width:112px;padding:4px 8px;border:1px solid #D8E2FF;border-radius:6px;
+    font-size:13px;text-align:right;font-variant-numeric:tabular-nums;color:#000;outline:none;background:#fff;}
+  .sheet .calc-edit input:focus{border-color:var(--blue);}
+  .sheet .calc-divider{height:1px;background:#E3ECFF;margin:6px 0;}
+  .sheet .sec-title{font-size:14px;font-weight:600;color:#000;margin:6px 0 10px;
+    padding-left:8px;border-left:3px solid var(--blue);line-height:1.3;}
+  .sheet .auto-row{margin-bottom:10px;}
+  .sheet .auto-label{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text);cursor:pointer;}
+  .sheet .auto-label input{width:16px;height:16px;margin:0;}
+  .sheet .btns{display:flex;gap:10px;margin-top:6px;}
+  .sheet .btns button{flex:1;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;}
+  .sheet .btns .cancel{background:#F2F2F2;color:var(--text);}
+  .sheet .btns .save{background:var(--blue);color:#fff;}
+  .sheet .btns .del{background:#FDF0F0;color:#E60012;flex:0 0 90px;}
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- 顶部吸顶 -->
+  <div class="top-sticky">
+    <!-- 状态栏 -->
+    <div class="statusbar">
+      <span id="clock">15:03</span>
+      <span class="right">
+        <svg width="17" height="11" viewBox="0 0 17 11"><rect x="0" y="7" width="3" height="4" rx="0.8" fill="#000"/><rect x="4.7" y="5" width="3" height="6" rx="0.8" fill="#000"/><rect x="9.4" y="3" width="3" height="8" rx="0.8" fill="#000"/><rect x="14" y="0" width="3" height="11" rx="0.8" fill="#000"/></svg>
+        <svg width="16" height="11" viewBox="0 0 16 11"><path d="M8 9.5a1.6 1.6 0 1 1 0-3.2 1.6 1.6 0 0 1 0 3.2z" fill="#000"/><path d="M8 5.5C6.3 5.5 4.8 6.2 3.8 7.3L2.5 6C4 4.3 5.9 3.5 8 3.5S12 4.3 13.5 6l-1.3 1.3C11.2 6.2 9.7 5.5 8 5.5z" fill="#000"/><path d="M8 .5C5.2.5 2.6 1.8.7 3.8L2 5.1C3.5 3.5 5.7 2.6 8 2.6s4.5.9 6 2.5l1.3-1.3C13.4 1.8 10.8.5 8 .5z" fill="#000"/></svg>
+        <svg width="25" height="13" viewBox="0 0 25 13"><rect x="0.5" y="0.5" width="21.5" height="12" rx="2.5" fill="none" stroke="#000" stroke-opacity="0.35"/><rect id="battFill" x="2" y="2" width="13" height="9" rx="1.5" fill="#000"/><rect x="23" y="4" width="1.8" height="5" rx="0.9" fill="#000" fill-opacity="0.35"/><text id="battText" x="3.5" y="10" font-size="8" fill="#fff" font-weight="600" font-family="-apple-system,sans-serif">45</text></svg>
+      </span>
+    </div>
+    <!-- 导航栏 -->
+    <div class="navbar">
+      <div class="back" id="backBtn"><span class="arrow">‹</span>返回</div>
+      <div class="title">收入纳税明细</div>
+      <div class="right-act" id="appealBtn">批量申诉</div>
+    </div>
+  </div>
+
+  <!-- 汇总卡 -->
+  <div class="summary" id="summary">
+    <div class="row">
+      <span class="label">收入合计 <span class="q">?</span>：</span>
+      <span class="val" id="totalIncome">0.00元</span>
+    </div>
+    <div class="row">
+      <span class="label">已申报税额合计：</span>
+      <span class="val" id="totalTax">0.00元</span>
+    </div>
+  </div>
+
+  <!-- 明细列表 -->
+  <div class="list" id="list"></div>
+  <div class="add-btn" id="addBtn">＋ 添加记录</div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div class="mask" id="mask" onclick="closeSheet(event)"></div>
+<div class="sheet" id="sheet">
+  <div class="grip"></div>
+  <h4 id="sheetTitle">收入明细</h4>
+  <div class="net-box">
+    <div class="nlabel">税款计算（累计预扣法）</div>
+    <div class="calc-edit"><span>累计收入</span><input type="number" id="cIncomeInput" step="0.01" min="0"></div>
+    <div class="calc-edit"><span>累计减除费用（5000×N月）</span><input type="number" id="cBaseInput" step="0.01" min="0"></div>
+    <div class="calc-edit"><span>累计专项扣除</span><input type="number" id="cDeductInput" step="0.01" min="0"></div>
+    <div class="calc-divider"></div>
+    <div class="calc-row"><span>累计应纳税所得额</span><b id="cTaxable">0.00元</b></div>
+    <div class="calc-row"><span>税率 / 速算扣除数</span><b id="cRate">3% / 0元</b></div>
+    <div class="calc-row"><span>累计应纳税额</span><b id="cCumTax">0.00元</b></div>
+    <div class="calc-edit"><span>累计已缴税额</span><input type="number" id="cPaidInput" step="0.01" min="0"></div>
+    <div class="calc-divider"></div>
+    <div class="calc-row strong"><span>本期申报税额</span><b id="cPeriod">0.00元</b></div>
+    <div class="calc-divider"></div>
+    <div class="calc-row"><span>实发到账（本期收入−本期税额）</span><b id="cNet">0.00元</b></div>
+  </div>
+  <div class="sec-title">本期收入与扣除</div>
+  <div class="field"><label>扣缴义务人（公司）</label><input type="text" id="eCompany"></div>
+  <div class="field"><label>所得项目小类</label>
+    <select id="eSub">
+      <option>正常工资薪金</option><option>全年一次性奖金</option><option>劳务报酬</option><option>其他</option>
+    </select></div>
+  <div class="field"><label>月份（YYYY-MM）</label><input type="month" id="eMonth"></div>
+  <div class="field"><label>本期收入（元，税前）</label><input type="number" id="eIncome" step="0.01" min="0"></div>
+  <div class="field"><label>本期专项扣除（三险一金，元）</label><input type="number" id="eDeduct" step="0.01" min="0"></div>
+  <div class="field"><label>本期申报税额（元）</label><input type="number" id="eTax" step="0.01" min="0"></div>
+  <div class="field"><label>招行对应流水（备注）</label><input type="text" id="eCmb" placeholder="如：招行 6月工资 +9481.00"></div>
+  <div class="btns">
+    <button class="cancel" id="eCancel">取消</button>
+    <button class="del" id="eDelete">删除</button>
+    <button class="save" id="eSave">保存</button>
+  </div>
+</div>
+
+<script>
+  // ===== 状态栏：实时时间 + 电量 =====
+  function pad(n){ return (n<10?'0':'')+n; }
+  function tickClock(){
+    const d = new Date();
+    const el = document.getElementById('clock');
+    if(el) el.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  function setBattery(level){
+    const lvl = Math.max(0, Math.min(100, Math.round(level*100)));
+    const fill = document.getElementById('battFill');
+    const txt = document.getElementById('battText');
+    // 电池内芯宽 13px（x=2 起），按电量百分比缩放
+    const w = Math.max(0, Math.round(13 * lvl / 100));
+    if(fill) fill.setAttribute('width', w);
+    if(txt) txt.textContent = lvl;
+    // 低电量变红（iOS 风格）
+    if(fill) fill.setAttribute('fill', lvl <= 20 ? '#FF3B30' : '#000');
+  }
+  function initBattery(){
+    if(navigator.getBattery){
+      navigator.getBattery().then(b => {
+        setBattery(b.level);
+        b.addEventListener('levelchange', ()=> setBattery(b.level));
+        b.addEventListener('chargingchange', ()=> setBattery(b.level));
+      }).catch(()=>{ /* 无权限，保持默认 45 */ });
+    } else {
+      // 不支持 Battery API（如部分浏览器/桌面），保持默认 45
+    }
+  }
+  tickClock();
+  setInterval(tickClock, 30000);
+  initBattery();
+
+  // ===== 数据源 =====
+  // deduct: 本期专项扣除（三险一金）；tax: 本期申报税额
+  let RECORDS = [
+    {month:'2026-08', company:'河北网盾网络科技有限公司', sub:'正常工资薪金', income:12000.00, deduct:633.39, tax:636.66, cmb:'招行 8月工资 +10729.95'},
+    {month:'2026-07', company:'河北网盾网络科技有限公司', sub:'正常工资薪金', income:12000.00, deduct:633.39, tax:378.58, cmb:'招行 7月工资 +10988.03'},
+    {month:'2026-06', company:'河北网盾网络科技有限公司', sub:'正常工资薪金', income:12000.00, deduct:633.39, tax:191.00, cmb:'招行 6月工资 +11175.61'},
+    {month:'2026-05', company:'河北网盾网络科技有限公司', sub:'正常工资薪金', income:12000.00, deduct:633.39, tax:191.00, cmb:'招行 5月工资 +11175.61'},
+    {month:'2026-04', company:'北京天融信网络安全技术有限公司', sub:'正常工资薪金', income:12000.00, deduct:2105.00, tax:146.85, cmb:'招行 4月工资 +9748.15'},
+    {month:'2026-03', company:'北京天融信网络安全技术有限公司', sub:'正常工资薪金', income:12000.00, deduct:2105.00, tax:146.85, cmb:'招行 3月工资 +9748.15'},
+    {month:'2026-02', company:'北京天融信网络安全技术有限公司', sub:'正常工资薪金', income:12000.00, deduct:2105.00, tax:146.85, cmb:'招行 2月工资 +9748.15'},
+    {month:'2026-01', company:'北京天融信网络安全技术有限公司', sub:'正常工资薪金', income:12000.00, deduct:2105.00, tax:146.85, cmb:'招行 1月工资 +9748.15'},
+  ];
+
+  const fmt = n => n.toFixed(2);
+
+  // ===== 年度税率表（累计预扣法用） =====
+  function yearTaxTable(taxable){
+    if(taxable <= 36000)   return {rate:0.03, quick:0};
+    if(taxable <= 144000)  return {rate:0.10, quick:2520};
+    if(taxable <= 300000)  return {rate:0.20, quick:16920};
+    if(taxable <= 420000)  return {rate:0.25, quick:31920};
+    if(taxable <= 660000)  return {rate:0.30, quick:52920};
+    if(taxable <= 960000)  return {rate:0.35, quick:85920};
+    return {rate:0.45, quick:181920};
+  }
+
+  function monthDiff(a, b){
+    const [ya, ma] = a.split('-').map(Number);
+    const [yb, mb] = b.split('-').map(Number);
+    return (yb - ya) * 12 + (mb - ma);
+  }
+
+  // 从 RECORDS 推导某月的累计初值（累计收入/扣除/已缴/减除费用）
+  function computeCumulative(month){
+    const sortedMonths = [...new Set(RECORDS.map(r=>r.month))].sort();
+    const first = sortedMonths[0] || month;
+    let income = 0, deduct = 0, paid = 0;
+    RECORDS.forEach(r=>{
+      if(r.month <= month){
+        income += r.income;
+        deduct += (r.deduct || 0);
+        if(r.month < month) paid += (r.tax || 0);
+      }
+    });
+    const n = monthDiff(first, month) + 1;
+    return { income, deduct, base: 5000 * n, paid, n };
+  }
+
+  function render(){
+    const listEl = document.getElementById('list');
+    let totalIncome = 0, totalTax = 0;
+    let html = '';
+    RECORDS.forEach((r, i)=>{
+      totalIncome += r.income;
+      totalTax += r.tax;
+      html += `
+      <div class="rec" data-i="${i}">
+        <div class="head"><span class="type">工资薪金</span><span class="date">${r.month}</span></div>
+        <div class="field"><span class="k">所得项目小类：</span><span class="v">${r.sub}</span></div>
+        <div class="field"><span class="k">扣缴义务人：</span><span class="v"><span class="txt">${r.company}</span><span class="arrow">›</span></span></div>
+        <div class="field"><span class="k">收入：</span><span class="v">${fmt(r.income)}元</span></div>
+        <div class="field"><span class="k">已申报税额：</span><span class="v">${fmt(r.tax)}元</span></div>
+      </div>`;
+    });
+    listEl.innerHTML = html;
+    document.getElementById('totalIncome').textContent = fmt(totalIncome) + '元';
+    document.getElementById('totalTax').textContent = fmt(totalTax) + '元';
+
+    listEl.querySelectorAll('.rec').forEach(el=>{
+      el.onclick = ()=>{ openEdit(parseInt(el.dataset.i)); };
+    });
+  }
+
+  let editingIndex = null;
+
+  function calcNet(){
+    const cumIncome = parseFloat(document.getElementById('cIncomeInput').value) || 0;
+    const cumBase   = parseFloat(document.getElementById('cBaseInput').value) || 0;
+    const cumDeduct = parseFloat(document.getElementById('cDeductInput').value) || 0;
+    const cumPaid   = parseFloat(document.getElementById('cPaidInput').value) || 0;
+    const income    = parseFloat(document.getElementById('eIncome').value) || 0;
+
+    const taxable = Math.max(0, cumIncome - cumBase - cumDeduct);
+    const {rate, quick} = yearTaxTable(taxable);
+    const cumTax = Math.max(0, taxable * rate - quick);
+    const period = Math.max(0, cumTax - cumPaid);
+    const net = income - period;
+
+    document.getElementById('cTaxable').textContent = fmt(taxable) + '元';
+    document.getElementById('cRate').textContent = (rate*100) + '% / ' + quick + '元';
+    document.getElementById('cCumTax').textContent = fmt(cumTax) + '元';
+    document.getElementById('cPeriod').textContent = fmt(period) + '元';
+    document.getElementById('cNet').textContent = fmt(net) + '元';
+
+    // 本期税额输入框同步（用户可手动覆盖）
+    document.getElementById('eTax').value = period.toFixed(2);
+  }
+
+  function fillCumulative(month){
+    const c = computeCumulative(month);
+    document.getElementById('cIncomeInput').value = c.income.toFixed(2);
+    document.getElementById('cBaseInput').value = c.base.toFixed(2);
+    document.getElementById('cDeductInput').value = c.deduct.toFixed(2);
+    document.getElementById('cPaidInput').value = c.paid.toFixed(2);
+  }
+
+  function openEdit(i){
+    editingIndex = i;
+    const r = RECORDS[i];
+    document.getElementById('sheetTitle').textContent = '收入明细';
+    document.getElementById('eCompany').value = r.company;
+    document.getElementById('eSub').value = r.sub;
+    document.getElementById('eMonth').value = r.month;
+    document.getElementById('eIncome').value = r.income;
+    document.getElementById('eDeduct').value = r.deduct || 0;
+    document.getElementById('eTax').value = r.tax;
+    document.getElementById('eCmb').value = r.cmb;
+    fillCumulative(r.month);
+    document.getElementById('eDelete').style.display = '';
+    calcNet();
+    showSheet(true);
+  }
+
+  function openAdd(){
+    editingIndex = null;
+    document.getElementById('sheetTitle').textContent = '新增记录';
+    document.getElementById('eCompany').value = '';
+    document.getElementById('eSub').value = '正常工资薪金';
+    document.getElementById('eMonth').value = '2026-07';
+    document.getElementById('eIncome').value = '';
+    document.getElementById('eDeduct').value = '';
+    document.getElementById('eTax').value = '';
+    document.getElementById('eCmb').value = '';
+    fillCumulative('2026-07');
+    document.getElementById('eDelete').style.display = 'none';
+    calcNet();
+    showSheet(true);
+  }
+
+  function delRecord(){
+    if(editingIndex === null) return;
+    if(!confirm('确定删除这条记录吗？')) return;
+    RECORDS.splice(editingIndex,1);
+    render();
+    showSheet(false);
+  }
+
+  function showSheet(on){
+    document.getElementById('mask').classList.toggle('show', on);
+    document.getElementById('sheet').classList.toggle('show', on);
+  }
+  function closeSheet(e){
+    if(e && e.target !== e.currentTarget) return;
+    showSheet(false);
+  }
+
+  ['eIncome','eDeduct','eTax','cIncomeInput','cBaseInput','cDeductInput','cPaidInput'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', calcNet);
+  });
+  document.getElementById('eCancel').onclick = ()=>showSheet(false);
+  document.getElementById('eDelete').onclick = delRecord;
+  document.getElementById('eSave').onclick = ()=>{
+    const company = document.getElementById('eCompany').value.trim();
+    const sub = document.getElementById('eSub').value;
+    const month = document.getElementById('eMonth').value;
+    const income = parseFloat(document.getElementById('eIncome').value) || 0;
+    const deduct = parseFloat(document.getElementById('eDeduct').value) || 0;
+    const tax = parseFloat(document.getElementById('eTax').value) || 0;
+    const cmb = document.getElementById('eCmb').value.trim();
+    if(!company){ alert('请输入扣缴义务人'); return; }
+    if(!month){ alert('请选择月份'); return; }
+    if(editingIndex !== null){
+      RECORDS[editingIndex] = {month, company, sub, income, deduct, tax, cmb};
+    } else {
+      RECORDS.push({month, company, sub, income, deduct, tax, cmb});
+    }
+    render();
+    showSheet(false);
+  };
+
+  document.getElementById('backBtn').onclick = ()=>{ /* 返回 */ };
+  document.getElementById('appealBtn').onclick = ()=>{ alert('批量申诉（演示）'); };
+  document.getElementById('addBtn').onclick = openAdd;
+
+  render();
+</script>
+</body>
+</html>
