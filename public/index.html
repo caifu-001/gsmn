@@ -14,22 +14,76 @@
   .card .t { font-size:16px; color:#2E2E2E; font-weight:600; margin-bottom:4px; }
   .card .d { font-size:13px; color:#959697; }
   .card .go { float:right; color:#2E7AFF; font-size:14px; margin-top:-24px; }
+
+  /* 口令门 */
+  #gate { display:block; background:#fff; border-radius:14px; padding:28px 24px; box-shadow:0 1px 3px rgba(0,0,0,.06); text-align:center; }
+  #gate .gt { font-size:17px; color:#2E2E2E; font-weight:600; margin-bottom:6px; }
+  #gate .gd { font-size:13px; color:#959697; margin-bottom:18px; }
+  #gate input { width:100%; font-size:15px; padding:11px 14px; border:1px solid #E5E5E7; border-radius:10px; outline:none; text-align:center; letter-spacing:1px; }
+  #gate input:focus { border-color:#2E7AFF; }
+  #gate button { width:100%; margin-top:14px; font-size:15px; color:#fff; background:#2E7AFF; border:none; border-radius:10px; padding:12px; cursor:pointer; }
+  #gate button:active { opacity:.85; }
+  #gate .err { display:none; font-size:12px; color:#FF3B30; margin-top:10px; }
+  #content { display:none; }
+  .toolbar { display:flex; justify-content:flex-end; margin-bottom:14px; }
+  .logout { font-size:12px; color:#959697; background:none; border:1px solid #E5E5E7; border-radius:8px; padding:5px 12px; cursor:pointer; }
 </style>
 </head>
 <body>
   <div class="wrap">
     <h1>App 原型</h1>
     <div class="sub">像素级还原 · 点击进入对应页面</div>
-    <a class="card" href="./招商银行流水App.html">
-      <div class="t">招商银行流水</div>
-      <div class="d">收支明细 · 月度汇总 · 流水编辑</div>
-      <div class="go">进入 ›</div>
-    </a>
-    <a class="card" href="./个税App_收入纳税明细.html">
-      <div class="t">个税 · 收入纳税明细</div>
-      <div class="d">累计预扣 · 税款计算 · 记录编辑</div>
-      <div class="go">进入 ›</div>
-    </a>
+
+    <div id="gate">
+      <div class="gt">请输入访问口令</div>
+      <div class="gd">私有原型，仅限授权访问</div>
+      <input type="password" id="pwd" placeholder="访问口令" />
+      <button onclick="unlock()">进入</button>
+      <div class="err" id="err">口令错误，请重试</div>
+    </div>
+
+    <div id="content">
+      <div class="toolbar"><button class="logout" onclick="logout()">退出</button></div>
+      <a class="card" href="./招商银行流水App.html">
+        <div class="t">招商银行流水</div>
+        <div class="d">收支明细 · 月度汇总 · 流水编辑</div>
+        <div class="go">进入 ›</div>
+      </a>
+      <a class="card" href="./个税App_收入纳税明细.html">
+        <div class="t">个税 · 收入纳税明细</div>
+        <div class="d">累计预扣 · 税款计算 · 记录编辑</div>
+        <div class="go">进入 ›</div>
+      </a>
+    </div>
   </div>
+
+<script>
+  var PASS = "gsmn2026";
+  function unlock() {
+    var v = document.getElementById("pwd").value;
+    if (v === PASS) {
+      try { localStorage.setItem("gsmn_auth", "1"); } catch (e) {}
+      document.getElementById("gate").style.display = "none";
+      document.getElementById("content").style.display = "block";
+    } else {
+      document.getElementById("err").style.display = "block";
+    }
+  }
+  function logout() {
+    try { localStorage.removeItem("gsmn_auth"); } catch (e) {}
+    location.reload();
+  }
+  // 已授权则直接进入
+  try {
+    if (localStorage.getItem("gsmn_auth") === "1") {
+      document.getElementById("gate").style.display = "none";
+      document.getElementById("content").style.display = "block";
+    }
+  } catch (e) {}
+  // 回车提交
+  document.getElementById("pwd").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { unlock(); }
+  });
+</script>
 </body>
 </html>
